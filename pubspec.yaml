@@ -13,6 +13,7 @@ dependencies:
   google_generative_ai: ^0.4.6
   image_picker: ^1.1.2
   material: ^1.0.0+2
+  permission_handler: ^11.4.0
 
 dev_dependencies:
   flutter_test:

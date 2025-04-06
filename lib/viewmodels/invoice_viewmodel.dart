@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:gemini_3/viewmodels/image_picker_service.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class InvoiceViewModel {
   final GenerativeModel _model;
@@ -10,22 +11,58 @@ class InvoiceViewModel {
   List<String> messages = [];
   bool isLoading = false;
   Uint8List? currentImage;
+  String? lastError;
 
-  InvoiceViewModel({required String apiKey}) 
+  InvoiceViewModel({required String apiKey})
       : _model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey) {
     _chat = _model.startChat();
   }
 
-  Future<void> pickAndAnalyzeImage() async {
-    final imageBytes = await _imagePickerService.pickImage();
-    if (imageBytes == null) return;
+  // Método para seleccionar imagen de la galería
+  Future<void> pickAndAnalyzeImageFromGallery() async {
+    try {
+      lastError = null;
+      final imageBytes = await _imagePickerService.pickImageFromGallery();
+      if (imageBytes == null) return;
 
-    currentImage = imageBytes;
-    await _analyzeImage(imageBytes);
+      currentImage = imageBytes;
+      await analyzeImage(imageBytes);
+    } catch (e) {
+      lastError = 'Error al seleccionar imagen: ${e.toString()}';
+      messages.add(lastError!);
+    }
   }
 
-  Future<void> _analyzeImage(Uint8List imageBytes) async {
+  // Método para capturar imagen de la cámara
+  Future<void> captureAndAnalyzeImageFromCamera() async {
+    try {
+      lastError = null;
+      // Verificar permisos de cámara
+      final cameraStatus = await Permission.camera.status;
+      if (!cameraStatus.isGranted) {
+        final result = await Permission.camera.request();
+        if (!result.isGranted) {
+          lastError = 'Permisos de cámara denegados';
+          messages.add(lastError!);
+          return;
+        }
+      }
+
+      final imageBytes = await _imagePickerService.captureImageFromCamera();
+      if (imageBytes == null) return;
+
+      currentImage = imageBytes;
+      await analyzeImage(imageBytes);
+    } catch (e) {
+      lastError = 'Error al capturar imagen: ${e.toString()}';
+      messages.add(lastError!);
+    }
+  }
+
+  // Método para analizar la imagen (ahora público por si necesitas usarlo directamente)
+  Future<void> analyzeImage(Uint8List imageBytes) async {
     isLoading = true;
+    messages.add("Analizando factura...");
     
     try {
       final response = await _chat.sendMessage(
@@ -54,9 +91,17 @@ class InvoiceViewModel {
         messages.add(response.text!);
       }
     } catch (e) {
-      messages.add('Error al analizar la imagen: $e');
-    } finally {
-      isLoading = false;
-    }
+      lastError = 'Error al analizar la imagen: ${e.toString()}';
+      } finally {
+        isLoading = false;
+      }
+  }
+
+  // Método para limpiar los datos
+  void clearData() {
+    messages.clear();
+    currentImage = null;
+    lastError = null;
+    isLoading = false;
   }
 }
