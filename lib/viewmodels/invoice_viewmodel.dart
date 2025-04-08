@@ -2,6 +2,8 @@ import 'dart:typed_data';
 import 'package:gemini_3/viewmodels/image_picker_service.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'dart:io'; // Importa dart:io para manejar archivos
+import 'package:path_provider/path_provider.dart'; // Para obtener el directorio de la aplicación
 
 class InvoiceViewModel {
   final GenerativeModel _model;
@@ -16,6 +18,23 @@ class InvoiceViewModel {
   InvoiceViewModel({required String apiKey})
       : _model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey) {
     _chat = _model.startChat();
+  }
+
+  Future<void> saveResponseToJson(String responseText) async {
+  try {
+    // Obtén el directorio de la aplicación
+    final directory = await getApplicationDocumentsDirectory();
+    final filePath = '${directory.path}/response.json';
+
+    // Escribe el contenido en el archivo
+    final file = File(filePath);
+    await file.writeAsString(responseText);
+
+    messages.add('Archivo guardado en: $filePath');
+  } catch (e) {
+    lastError = 'Error al guardar el archivo: ${e.toString()}';
+    messages.add(lastError!);
+  }
   }
 
   // Método para seleccionar imagen de la galería
@@ -61,40 +80,41 @@ class InvoiceViewModel {
 
   // Método para analizar la imagen (ahora público por si necesitas usarlo directamente)
   Future<void> analyzeImage(Uint8List imageBytes) async {
-    isLoading = true;
-    messages.add("Analizando factura...");
-    
-    try {
-      final response = await _chat.sendMessage(
-        Content.multi([
-          TextPart("""
-            Solo extrae no des más conversación ni una entrada de diálogo solo dame a la categoría que pertenece
-            (Categorías: Alimentos, Hogar, Ropa, Salud, Tecnología, Entretenimiento, Transporte, Mascotas, Otros:otros no pertenece a 
-            ninguna de las otras categorías), productos y precios de esta factura y que estén en un formato json.
-            
-            Ejemplo:
-              {
-                "compras": [
-                  {
-                    "categoria": "Alimentos",
-                    "producto": "Manzana",
-                    "precio": 1.50
-                  }
-                ]
-              }
-          """),
-          DataPart('image/jpeg', imageBytes),
-        ]),
-      );
+  isLoading = true;
+  messages.add("Analizando factura...");
+  
+  try {
+    final response = await _chat.sendMessage(
+      Content.multi([
+        TextPart("""
+          Solo extrae no des más conversación ni una entrada de diálogo solo dame a la categoría que pertenece
+          (Categorías: Alimentos, Hogar, Ropa, Salud, Tecnología, Entretenimiento, Transporte, Mascotas, Otros:otros no pertenece a 
+          ninguna de las otras categorías), productos y precios de esta factura y que estén en un formato json.
+          
+          Ejemplo:
+            {
+              "compras": [
+                {
+                  "categoria": "Alimentos",
+                  "producto": "Manzana",
+                  "precio": 1.50
+                }
+              ]
+            }
+        """),
+        DataPart('image/jpeg', imageBytes),
+      ]),
+    );
 
-      if (response.text != null) {
-        messages.add(response.text!);
-      }
-    } catch (e) {
-      lastError = 'Error al analizar la imagen: ${e.toString()}';
-      } finally {
-        isLoading = false;
-      }
+    if (response.text != null) {
+      messages.add(response.text!);
+      await saveResponseToJson(response.text!); // Guarda el texto en un archivo JSON
+    }
+  } catch (e) {
+    lastError = 'Error al analizar la imagen: ${e.toString()}';
+  } finally {
+    isLoading = false;
+  }
   }
 
   // Método para limpiar los datos
