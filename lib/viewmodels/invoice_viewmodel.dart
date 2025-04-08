@@ -141,6 +141,46 @@ Future<void> saveResponseToJson(String responseText) async {
   }
   }
 
+  Future<void> processTextInvoice(String invoiceText) async {
+  try {
+    isLoading = true;
+    messages.add("Procesando factura de texto...");
+
+    // Enviar el texto al modelo para categorizarlo
+    final response = await _chat.sendMessage(
+      Content.text("""
+        Categoriza los productos y precios de esta factura en formato JSON.
+        Solo responde con el JSON, sin texto adicional.
+        Categorías: Alimentos, Hogar, Ropa, Salud, Tecnología, Entretenimiento, Transporte, Mascotas, Otros.
+        
+        Ejemplo de respuesta:
+        {
+          "compras": [
+            {
+              "categoria": "Alimentos",
+              "producto": "Manzana",
+              "precio": 1.50
+            }
+          ]
+        }
+        
+        Factura:
+        $invoiceText
+      """),
+    );
+
+    if (response.text != null) {
+      messages.add(response.text!);
+      await saveResponseToJson(response.text!); // Guarda el texto en un archivo JSON
+    }
+  } catch (e) {
+    lastError = 'Error al procesar la factura de texto: ${e.toString()}';
+    messages.add(lastError!);
+  } finally {
+    isLoading = false;
+  }
+  }
+
   // Método para limpiar los datos
   void clearData() {
     messages.clear();
