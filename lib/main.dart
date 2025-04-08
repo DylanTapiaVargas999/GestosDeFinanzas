@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import 'views/invoice_scanner_screen.dart';
-
-const String _apiKey = "AIzaSyAPwGfQo9eI2KubbXhabdH8ESDRR4s5Llo";
+import 'views/home_screen.dart';
 
 void main() {
   runApp(const InvoiceAnalyzerApp());
@@ -21,7 +19,7 @@ class InvoiceAnalyzerApp extends StatelessWidget {
         ),
         useMaterial3: true,
       ),
-      home: InvoiceScannerScreen(apiKey: _apiKey),
+      home: const HomeScreen(), // Cambia la pantalla inicial a HomeScreen
     );
   }
 }

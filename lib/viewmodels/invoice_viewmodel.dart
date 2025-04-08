@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:gemini_3/viewmodels/image_picker_service.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
@@ -20,23 +21,46 @@ class InvoiceViewModel {
     _chat = _model.startChat();
   }
 
-  Future<void> saveResponseToJson(String responseText) async {
+// filepath: c:\Users\dylan\OneDrive\Desktop\Nueva carpeta (4)\GestosDeFinanzas\lib\viewmodels\invoice_viewmodel.dart
+Future<void> saveResponseToJson(String responseText) async {
   try {
+    // Limpia el texto de la respuesta eliminando "```json" y "```"
+    String cleanedResponse = responseText
+        .replaceAll('```json', '')
+        .replaceAll('```', '')
+        .trim();
+
     // Obtén el directorio de la aplicación
     final directory = await getApplicationDocumentsDirectory();
     final filePath = '${directory.path}/response.json';
-
-    // Escribe el contenido en el archivo
     final file = File(filePath);
-    await file.writeAsString(responseText);
 
-    messages.add('Archivo guardado en: $filePath');
+    // Inicializa una lista para almacenar los datos
+    List<dynamic> existingData = [];
+
+    // Si el archivo existe, lee su contenido y parsea el JSON
+    if (await file.exists()) {
+      final content = await file.readAsString();
+      if (content.isNotEmpty) {
+        existingData = jsonDecode(content) as List<dynamic>;
+      }
+    }
+
+    // Parsear la nueva respuesta como JSON
+    final newData = jsonDecode(cleanedResponse);
+
+    // Agregar los nuevos datos al contenido existente
+    existingData.add(newData);
+
+    // Guardar el contenido actualizado en el archivo
+    await file.writeAsString(jsonEncode(existingData), mode: FileMode.write);
+
+    messages.add('Archivo actualizado y guardado en: $filePath');
   } catch (e) {
     lastError = 'Error al guardar el archivo: ${e.toString()}';
     messages.add(lastError!);
   }
   }
-
   // Método para seleccionar imagen de la galería
   Future<void> pickAndAnalyzeImageFromGallery() async {
     try {
