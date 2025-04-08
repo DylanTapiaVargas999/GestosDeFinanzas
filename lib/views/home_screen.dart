@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'invoice_scanner_screen.dart';
 import 'json_viewer_screen.dart';
+import 'category_summary_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -17,7 +18,6 @@ class HomeScreen extends StatelessWidget {
           children: [
             ElevatedButton(
               onPressed: () {
-                // Navega a la pantalla de análisis de facturas
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -32,7 +32,6 @@ class HomeScreen extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                // Navega a la pantalla para mostrar el archivo JSON
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -41,6 +40,18 @@ class HomeScreen extends StatelessWidget {
                 );
               },
               child: const Text('Ver Archivo JSON'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CategorySummaryScreen(),
+                  ),
+                );
+              },
+              child: const Text('Ver Resumen por Categoría'),
             ),
           ],
         ),
