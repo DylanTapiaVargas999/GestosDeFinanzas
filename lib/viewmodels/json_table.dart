@@ -17,6 +17,7 @@ class InvoiceViewModel {
   ];
 
   Map<String, double> categoryTotals = {};
+  List<Map<String, dynamic>> allPurchases = [];
 
   InvoiceViewModel() {
     _initializeCategoryTotals();
@@ -48,9 +49,17 @@ class InvoiceViewModel {
               final categoria = compra['categoria'] as String;
               final precio = (compra['precio'] as num).toDouble();
 
+              // Actualiza los totales por categoría
               if (categoryTotals.containsKey(categoria)) {
                 categoryTotals[categoria] = categoryTotals[categoria]! + precio;
               }
+
+              // Agrega la compra a la lista de todas las compras
+              allPurchases.add({
+                'categoria': categoria,
+                'producto': compra['producto'],
+                'precio': precio,
+              });
             }
           }
         }

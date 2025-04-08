@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'invoice_scanner_screen.dart';
 import 'json_viewer_screen.dart';
 import 'category_summary_screen.dart';
+import 'purchase_list_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -52,6 +53,18 @@ class HomeScreen extends StatelessWidget {
                 );
               },
               child: const Text('Ver Resumen por Categoría'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PurchaseListScreen(),
+                  ),
+                );
+              },
+              child: const Text('Ver Lista de Compras'),
             ),
           ],
         ),
