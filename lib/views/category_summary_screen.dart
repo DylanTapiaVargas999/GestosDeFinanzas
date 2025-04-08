@@ -11,13 +11,34 @@ class CategorySummaryScreen extends StatefulWidget {
 }
 
 class _CategorySummaryScreenState extends State<CategorySummaryScreen> {
+  // Lista de categorías predefinidas
+  final List<String> categories = [
+    'Alimentos',
+    'Hogar',
+    'Ropa',
+    'Salud',
+    'Tecnología',
+    'Entretenimiento',
+    'Transporte',
+    'Mascotas',
+    'Otros',
+  ];
+
   Map<String, double> categoryTotals = {};
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _initializeCategoryTotals();
     _loadAndProcessData();
+  }
+
+  // Inicializa el mapa con todas las categorías en 0
+  void _initializeCategoryTotals() {
+    categoryTotals = {
+      for (var category in categories) category: 0.0,
+    };
   }
 
   Future<void> _loadAndProcessData() async {
@@ -32,31 +53,23 @@ class _CategorySummaryScreenState extends State<CategorySummaryScreen> {
         final List<dynamic> data = jsonDecode(content);
 
         // Procesa los datos para calcular los totales por categoría
-        final Map<String, double> totals = {};
         for (var entry in data) {
           if (entry['compras'] != null) {
             for (var compra in entry['compras']) {
               final categoria = compra['categoria'] as String;
               final precio = (compra['precio'] as num).toDouble();
 
-              if (totals.containsKey(categoria)) {
-                totals[categoria] = totals[categoria]! + precio;
-              } else {
-                totals[categoria] = precio;
+              if (categoryTotals.containsKey(categoria)) {
+                categoryTotals[categoria] = categoryTotals[categoria]! + precio;
               }
             }
           }
         }
-
-        setState(() {
-          categoryTotals = totals;
-          isLoading = false;
-        });
-      } else {
-        setState(() {
-          isLoading = false;
-        });
       }
+
+      setState(() {
+        isLoading = false;
+      });
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -73,58 +86,51 @@ class _CategorySummaryScreenState extends State<CategorySummaryScreen> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : categoryTotals.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No hay datos disponibles.',
-                    style: TextStyle(fontSize: 16),
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  const Text(
+                    'Gastos por Categoría',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Gastos por Categoría',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: categoryTotals.length,
-                          itemBuilder: (context, index) {
-                            final category = categoryTotals.keys.elementAt(index);
-                            final total = categoryTotals[category]!;
-                            return ListTile(
-                              title: Text(category),
-                              trailing: Text(
-                                '\$${total.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Total de Categorías: ${categoryTotals.length}',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      Text(
-                        'Suma Total: \$${categoryTotals.values.fold(0.0, (sum, value) => sum + value).toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: categoryTotals.length,
+                      itemBuilder: (context, index) {
+                        final category = categoryTotals.keys.elementAt(index);
+                        final total = categoryTotals[category]!;
+                        return ListTile(
+                          title: Text(category),
+                          trailing: Text(
+                            '\$${total.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Total de Categorías: ${categoryTotals.length}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  Text(
+                    'Suma Total: \$${categoryTotals.values.fold(0.0, (sum, value) => sum + value).toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
     );
   }
 }
