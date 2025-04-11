@@ -1,22 +1,34 @@
 import 'package:flutter/material.dart';
-import '../viewmodels/json_table.dart';
+import 'package:gemini_3/viewmodels/json_table.dart';
 import '../viewmodels/user_balance_viewmodel.dart';
+import '../viewmodels/category_filter_viewmodel.dart';
+import 'filtered_purchases_screen.dart';
 
-class BalanceSummaryScreen extends StatefulWidget {
-  const BalanceSummaryScreen({super.key});
+class CategoriesScreen extends StatefulWidget {
+  const CategoriesScreen({super.key});
 
   @override
-  State<BalanceSummaryScreen> createState() => _BalanceSummaryScreenState();
+  State<CategoriesScreen> createState() => _CategoriesScreenState();
 }
 
-class _BalanceSummaryScreenState extends State<BalanceSummaryScreen> {
+class _CategoriesScreenState extends State<CategoriesScreen> {
   final InvoiceViewModel _invoiceViewModel = InvoiceViewModel();
   final UserBalanceViewModel _balanceViewModel = UserBalanceViewModel();
   bool isLoading = true;
   String? errorMessage;
   double totalSpent = 0.0;
   double availableBalance = 0.0;
-  List<Map<String, dynamic>> transactions = []; // Lista de transacciones reales
+  List<Map<String, dynamic>> allPurchases = [];
+
+  final List<String> categories = [
+    'Alimentos',
+    'Transporte',
+    'Entretenimiento',
+    'Salud',
+    'Educación',
+    'Hogar',
+    'Otros',
+  ];
 
   @override
   void initState() {
@@ -34,13 +46,11 @@ class _BalanceSummaryScreenState extends State<BalanceSummaryScreen> {
       // Cargar datos de las facturas
       await _invoiceViewModel.loadAndProcessData();
       totalSpent = _invoiceViewModel.getTotalSum();
+      allPurchases = _invoiceViewModel.allPurchases;
 
       // Cargar el balance del usuario
       await _balanceViewModel.loadBalance();
       availableBalance = _balanceViewModel.getBalance();
-
-      // Obtener las transacciones reales desde allPurchases
-      transactions = _invoiceViewModel.allPurchases;
     } catch (e) {
       setState(() {
         errorMessage = 'Error al cargar los datos: ${e.toString()}';
@@ -50,6 +60,21 @@ class _BalanceSummaryScreenState extends State<BalanceSummaryScreen> {
         isLoading = false;
       });
     }
+  }
+
+  void _navigateToFilteredPurchases(String category) {
+    final filterViewModel = CategoryFilterViewModel(allPurchases);
+    final filteredPurchases = filterViewModel.filterByCategory(category);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => FilteredPurchasesScreen(
+          category: category,
+          filteredPurchases: filteredPurchases,
+        ),
+      ),
+    );
   }
 
   @override
@@ -80,7 +105,7 @@ class _BalanceSummaryScreenState extends State<BalanceSummaryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 16),
+                      // Mostrar el balance y los gastos
                       Text(
                         'Saldo Total: \$${availableBalance.toStringAsFixed(2)}',
                         style: const TextStyle(
@@ -110,34 +135,36 @@ class _BalanceSummaryScreenState extends State<BalanceSummaryScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      const Text(
-                        'Últimas Transacciones',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
+
+                      // Mostrar los botones de categorías
                       Expanded(
-                        child: ListView.builder(
-                          itemCount: transactions.length,
+                        child: GridView.builder(
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2, // Número de columnas
+                            crossAxisSpacing: 16.0,
+                            mainAxisSpacing: 16.0,
+                            childAspectRatio: 1.0, // Hace que los botones sean cuadrados
+                          ),
+                          itemCount: categories.length,
                           itemBuilder: (context, index) {
-                            final transaction = transactions[index];
-                            return Card(
-                              margin: const EdgeInsets.symmetric(vertical: 8.0),
-                              child: ListTile(
-                                leading: Icon(
-                                  Icons.shopping_cart,
-                                  color: Colors.blue,
+                            return ElevatedButton(
+                              onPressed: () {
+                                _navigateToFilteredPurchases(categories[index]);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.all(16.0),
+                                backgroundColor: Colors.green, // Color verde para los botones
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(0), // Sin bordes redondeados
                                 ),
-                                title: Text(
-                                  '${transaction['producto']}: \$${transaction['precio'].toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                subtitle: Text(
-                                  'Categoría: ${transaction['categoria']}\nFecha: ${transaction['fecha']}',
+                              ),
+                              child: Text(
+                                categories[index],
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
                                 ),
                               ),
                             );

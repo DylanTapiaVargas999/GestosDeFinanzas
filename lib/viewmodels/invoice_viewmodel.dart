@@ -114,6 +114,9 @@ class InvoiceViewModel {
       ninguna de las otras categorías),el nombre del producto,el precio, el usuario(El nombre de usuario ya esta definodo) y la fecha.Que estén en un formato json.
       Si la fecha no se especifica, usa la fecha actual.
       Si lo que se te entrega no es una factura, no respondas nada.
+      Si la fecha esta en el futuro reemplaza la fecha por una fecha actual.
+      Si lo que se te entrega no son datos como precios o productos, no respondas nada.
+      No tomar en cuenta las horas, minutos y segundos de la fecha.
       Ejemplo de tipo de respuesta que quiero:
         {
           "compras": [
@@ -122,7 +125,7 @@ class InvoiceViewModel {
               "producto": "Manzana",
               "precio": 1.50,
               "usuario": "pedro perez",
-              "fecha": "01/01/2023 12:00"
+              "fecha": "01/01/2023"
             }
           ]
         }
@@ -138,6 +141,8 @@ class InvoiceViewModel {
       ninguna de las otras categorías),el nombre del producto,el precio, el usuario(El nombre de usuario ya esta definodo) y la fecha.Que estén en un formato json.
       Si la fecha no se especifica, usa la fecha actual.
       Si lo que se te entrega no son datos como precios o productos, no respondas nada.
+      Si la fecha esta en el futuro reemplaza la fecha por una fecha actual.
+      No tomar en cuenta las horas ,minutos y segundos de la fecha.
       Ejemplo de tipo de respuesta que quiero:
       {
         "compras": [

@@ -6,10 +6,7 @@ class UserBalanceViewModel {
   // Carga el balance del usuario desde el archivo
   Future<void> loadBalance() async {
     userBalance = await UserBalance.loadFromFile();
-    if (userBalance == null) {
-      // Si no existe un balance, inicializamos uno por defecto
-      userBalance = UserBalance(userId: 'default_user', balance: 0.0);
-    }
+    userBalance ??= UserBalance(userId: 'default_user', balance: 0.0);
   }
 
   // Guarda el balance del usuario en el archivo

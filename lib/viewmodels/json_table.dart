@@ -67,6 +67,13 @@ class InvoiceViewModel {
             }
           }
         }
+
+        // Ordenar las compras por fecha (más reciente primero)
+        allPurchases.sort((a, b) {
+          final fechaA = DateTime.parse(a['fecha']);
+          final fechaB = DateTime.parse(b['fecha']);
+          return fechaB.compareTo(fechaA); // Orden descendente
+        });
       }
     } catch (e) {
       print('Error al procesar los datos: $e');
