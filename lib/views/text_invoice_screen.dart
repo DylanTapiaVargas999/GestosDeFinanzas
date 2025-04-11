@@ -9,7 +9,7 @@ class TextInvoiceScreen extends StatefulWidget {
 }
 
 class _TextInvoiceScreenState extends State<TextInvoiceScreen> {
-  final InvoiceViewModel _viewModel = InvoiceViewModel(apiKey: "TU_API_KEY");
+  final InvoiceViewModel _viewModel = InvoiceViewModel(apiKey: "AIzaSyAPwGfQo9eI2KubbXhabdH8ESDRR4s5Llo", userId: '');
   final TextEditingController _controller = TextEditingController();
   bool isLoading = false;
 

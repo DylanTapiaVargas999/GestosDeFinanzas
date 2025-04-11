@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import '../viewmodels/json_table.dart';
+import '../viewmodels/user_balance_viewmodel.dart';
 
-class CategorySummaryScreen extends StatefulWidget {
-  const CategorySummaryScreen({super.key});
+class BalanceSummaryScreen extends StatefulWidget {
+  const BalanceSummaryScreen({super.key});
 
   @override
-  State<CategorySummaryScreen> createState() => _CategorySummaryScreenState();
+  State<BalanceSummaryScreen> createState() => _BalanceSummaryScreenState();
 }
 
-class _CategorySummaryScreenState extends State<CategorySummaryScreen> {
-  final InvoiceViewModel _viewModel = InvoiceViewModel();
+class _BalanceSummaryScreenState extends State<BalanceSummaryScreen> {
+  final InvoiceViewModel _invoiceViewModel = InvoiceViewModel();
+  final UserBalanceViewModel _balanceViewModel = UserBalanceViewModel();
   bool isLoading = true;
   String? errorMessage;
+  double totalSpent = 0.0;
+  double availableBalance = 0.0;
 
   @override
   void initState() {
@@ -26,7 +30,13 @@ class _CategorySummaryScreenState extends State<CategorySummaryScreen> {
     });
 
     try {
-      await _viewModel.loadAndProcessData();
+      // Cargar datos de las facturas
+      await _invoiceViewModel.loadAndProcessData();
+      totalSpent = _invoiceViewModel.getTotalSum();
+
+      // Cargar el balance del usuario
+      await _balanceViewModel.loadBalance();
+      availableBalance = _balanceViewModel.getBalance();
     } catch (e) {
       setState(() {
         errorMessage = 'Error al cargar los datos: ${e.toString()}';
@@ -42,7 +52,7 @@ class _CategorySummaryScreenState extends State<CategorySummaryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Resumen por Categoría'),
+        title: const Text('Resumen de Balance'),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
@@ -73,44 +83,42 @@ class _CategorySummaryScreenState extends State<CategorySummaryScreen> {
               : Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Gastos por Categoría',
+                        'Resumen de Balance',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(height: 16),
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: _viewModel.categoryTotals.length,
-                          itemBuilder: (context, index) {
-                            final category =
-                                _viewModel.categoryTotals.keys.elementAt(index);
-                            final total = _viewModel.categoryTotals[category]!;
-                            return ListTile(
-                              title: Text(category),
-                              trailing: Text(
-                                '\$${total.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            );
-                          },
+                      Text(
+                        'Dinero Disponible: \$${availableBalance.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Dinero Gastado: \$${totalSpent.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Total de Categorías: ${_viewModel.categoryTotals.length}',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                      Text(
-                        'Suma Total: \$${_viewModel.getTotalSum().toStringAsFixed(2)}',
-                        style: const TextStyle(
+                        'Balance Restante: \$${(availableBalance - totalSpent).toStringAsFixed(2)}',
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
+                          color: (availableBalance - totalSpent) >= 0
+                              ? Colors.green
+                              : Colors.red,
                         ),
                       ),
                     ],

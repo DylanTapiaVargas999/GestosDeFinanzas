@@ -11,6 +11,7 @@ class PurchaseListScreen extends StatefulWidget {
 class _PurchaseListScreenState extends State<PurchaseListScreen> {
   final InvoiceViewModel _viewModel = InvoiceViewModel();
   bool isLoading = true;
+  String? errorMessage;
 
   @override
   void initState() {
@@ -19,10 +20,22 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
   }
 
   Future<void> _loadData() async {
-    await _viewModel.loadAndProcessData();
     setState(() {
-      isLoading = false;
+      isLoading = true;
+      errorMessage = null;
     });
+
+    try {
+      await _viewModel.loadAndProcessData();
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error al cargar los datos: ${e.toString()}';
+      });
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   @override
@@ -30,32 +43,71 @@ class _PurchaseListScreenState extends State<PurchaseListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Lista de Compras'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _viewModel.allPurchases.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No hay compras registradas.',
-                    style: TextStyle(fontSize: 16),
+          : errorMessage != null
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        errorMessage!,
+                        style: const TextStyle(color: Colors.red, fontSize: 16),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadData,
+                        child: const Text('Reintentar'),
+                      ),
+                    ],
                   ),
                 )
-              : ListView.builder(
-                  itemCount: _viewModel.allPurchases.length,
-                  itemBuilder: (context, index) {
-                    final purchase = _viewModel.allPurchases[index];
-                    return ListTile(
-                      title: Text(purchase['producto']),
-                      subtitle: Text('Categoría: ${purchase['categoria']}'),
-                      trailing: Text(
-                        '\$${(purchase['precio'] as num).toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                        ),
+              : _viewModel.allPurchases.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No hay compras registradas.',
+                        style: TextStyle(fontSize: 16),
                       ),
-                    );
-                  },
-                ),
+                    )
+                  : ListView.builder(
+                      itemCount: _viewModel.allPurchases.length,
+                      itemBuilder: (context, index) {
+                        final purchase = _viewModel.allPurchases[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(
+                              vertical: 8.0, horizontal: 16.0),
+                          child: ListTile(
+                            title: Text(
+                              purchase['producto'],
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Categoría: ${purchase['categoria']}'),
+                                Text('Usuario: ${purchase['usuario']}'),
+                                Text('Fecha: ${purchase['fecha']}'),
+                              ],
+                            ),
+                            trailing: Text(
+                              '\$${(purchase['precio'] as num).toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
     );
   }
 }

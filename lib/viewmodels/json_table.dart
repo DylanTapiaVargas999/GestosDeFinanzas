@@ -48,6 +48,8 @@ class InvoiceViewModel {
             for (var compra in entry['compras']) {
               final categoria = compra['categoria'] as String;
               final precio = (compra['precio'] as num).toDouble();
+              final usuario = compra['usuario'] as String; // Nuevo campo
+              final fecha = compra['fecha'] as String; // Nuevo campo
 
               // Actualiza los totales por categoría
               if (categoryTotals.containsKey(categoria)) {
@@ -59,6 +61,8 @@ class InvoiceViewModel {
                 'categoria': categoria,
                 'producto': compra['producto'],
                 'precio': precio,
+                'usuario': usuario, // Agregamos el usuario
+                'fecha': fecha, // Agregamos la fecha
               });
             }
           }

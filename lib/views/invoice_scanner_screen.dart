@@ -4,6 +4,8 @@ import '../viewmodels/invoice_viewmodel.dart';
 
 class InvoiceScannerScreen extends StatefulWidget {
   final String apiKey;
+  final userId = 'Pedro Perez'; // Definir el nombre del usuario aquí
+
 
   const InvoiceScannerScreen({super.key, required this.apiKey});
 
@@ -17,7 +19,7 @@ class _InvoiceScannerScreenState extends State<InvoiceScannerScreen> {
   @override
   void initState() {
     super.initState();
-    _viewModel = InvoiceViewModel(apiKey: widget.apiKey);
+    _viewModel = InvoiceViewModel(apiKey: widget.apiKey, userId: '');
   }
 
   @override

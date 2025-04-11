@@ -1,66 +1,71 @@
-import 'dart:convert';
 import 'dart:typed_data';
+import 'package:gemini_3/utils/formato_json.dart';
 import 'package:gemini_3/viewmodels/image_picker_service.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'dart:io'; // Importa dart:io para manejar archivos
-import 'package:path_provider/path_provider.dart'; // Para obtener el directorio de la aplicación
 
 class InvoiceViewModel {
   final GenerativeModel _model;
   late final ChatSession _chat;
   final ImagePickerService _imagePickerService = ImagePickerService();
+  final String userId; // Agregamos el userId como propiedad
 
   List<String> messages = [];
   bool isLoading = false;
   Uint8List? currentImage;
   String? lastError;
 
-  InvoiceViewModel({required String apiKey})
+  InvoiceViewModel({required String apiKey, required this.userId})
       : _model = GenerativeModel(model: 'gemini-1.5-flash', apiKey: apiKey) {
     _chat = _model.startChat();
   }
 
-// filepath: c:\Users\dylan\OneDrive\Desktop\Nueva carpeta (4)\GestosDeFinanzas\lib\viewmodels\invoice_viewmodel.dart
-Future<void> saveResponseToJson(String responseText) async {
-  try {
-    // Limpia el texto de la respuesta eliminando "```json" y "```"
-    String cleanedResponse = responseText
-        .replaceAll('```json', '')
-        .replaceAll('```', '')
-        .trim();
+  // Método para analizar una imagen
+  Future<void> analyzeImage(Uint8List imageBytes) async {
+    isLoading = true;
+    messages.add("Analizando factura...");
 
-    // Obtén el directorio de la aplicación
-    final directory = await getApplicationDocumentsDirectory();
-    final filePath = '${directory.path}/response.json';
-    final file = File(filePath);
+    try {
+      final response = await _chat.sendMessage(
+        Content.multi([
+          TextPart(_getAnalysisPrompt(userId)), // Pasamos el userId
+          DataPart('image/jpeg', imageBytes),
+        ]),
+      );
 
-    // Inicializa una lista para almacenar los datos
-    List<dynamic> existingData = [];
-
-    // Si el archivo existe, lee su contenido y parsea el JSON
-    if (await file.exists()) {
-      final content = await file.readAsString();
-      if (content.isNotEmpty) {
-        existingData = jsonDecode(content) as List<dynamic>;
+      if (response.text != null) {
+        messages.add(response.text!);
+        await FileUtils.saveResponseToJson(response.text!); // Guarda el texto en un archivo JSON
       }
+    } catch (e) {
+      lastError = 'Error al analizar la imagen: ${e.toString()}';
+      messages.add(lastError!);
+    } finally {
+      isLoading = false;
     }
-
-    // Parsear la nueva respuesta como JSON
-    final newData = jsonDecode(cleanedResponse);
-
-    // Agregar los nuevos datos al contenido existente
-    existingData.add(newData);
-
-    // Guardar el contenido actualizado en el archivo
-    await file.writeAsString(jsonEncode(existingData), mode: FileMode.write);
-
-    messages.add('Archivo actualizado y guardado en: $filePath');
-  } catch (e) {
-    lastError = 'Error al guardar el archivo: ${e.toString()}';
-    messages.add(lastError!);
   }
+
+  // Método para procesar una factura en texto
+  Future<void> processTextInvoice(String invoiceText) async {
+    try {
+      isLoading = true;
+      messages.add("Procesando factura de texto...");
+
+      final response = await _chat.sendMessage(
+        Content.text(_getTextAnalysisPrompt(invoiceText, userId)), // Pasamos el userId
+      );
+
+      if (response.text != null) {
+        messages.add(response.text!);
+        await FileUtils.saveResponseToJson(response.text!); // Guarda el texto en un archivo JSON
+      }
+    } catch (e) {
+      lastError = 'Error al procesar la factura de texto: ${e.toString()}';
+      messages.add(lastError!);
+    } finally {
+      isLoading = false;
+    }
   }
+
   // Método para seleccionar imagen de la galería
   Future<void> pickAndAnalyzeImageFromGallery() async {
     try {
@@ -80,17 +85,6 @@ Future<void> saveResponseToJson(String responseText) async {
   Future<void> captureAndAnalyzeImageFromCamera() async {
     try {
       lastError = null;
-      // Verificar permisos de cámara
-      final cameraStatus = await Permission.camera.status;
-      if (!cameraStatus.isGranted) {
-        final result = await Permission.camera.request();
-        if (!result.isGranted) {
-          lastError = 'Permisos de cámara denegados';
-          messages.add(lastError!);
-          return;
-        }
-      }
-
       final imageBytes = await _imagePickerService.captureImageFromCamera();
       if (imageBytes == null) return;
 
@@ -102,90 +96,63 @@ Future<void> saveResponseToJson(String responseText) async {
     }
   }
 
-  // Método para analizar la imagen (ahora público por si necesitas usarlo directamente)
-  Future<void> analyzeImage(Uint8List imageBytes) async {
-  isLoading = true;
-  messages.add("Analizando factura...");
-  
-  try {
-    final response = await _chat.sendMessage(
-      Content.multi([
-        TextPart("""
-          Solo extrae no des más conversación ni una entrada de diálogo solo dame a la categoría que pertenece
-          (Categorías: Alimentos, Hogar, Ropa, Salud, Tecnología, Entretenimiento, Transporte, Mascotas, Otros:otros no pertenece a 
-          ninguna de las otras categorías), productos y precios de esta factura y que estén en un formato json.
-          
-          Ejemplo:
-            {
-              "compras": [
-                {
-                  "categoria": "Alimentos",
-                  "producto": "Manzana",
-                  "precio": 1.50
-                }
-              ]
-            }
-        """),
-        DataPart('image/jpeg', imageBytes),
-      ]),
-    );
-
-    if (response.text != null) {
-      messages.add(response.text!);
-      await saveResponseToJson(response.text!); // Guarda el texto en un archivo JSON
-    }
-  } catch (e) {
-    lastError = 'Error al analizar la imagen: ${e.toString()}';
-  } finally {
-    isLoading = false;
-  }
-  }
-
-  Future<void> processTextInvoice(String invoiceText) async {
-  try {
-    isLoading = true;
-    messages.add("Procesando factura de texto...");
-
-    // Enviar el texto al modelo para categorizarlo
-    final response = await _chat.sendMessage(
-      Content.text("""
-        Categoriza los productos y precios de esta factura en formato JSON.
-        Solo responde con el JSON, sin texto adicional.
-        Categorías: Alimentos, Hogar, Ropa, Salud, Tecnología, Entretenimiento, Transporte, Mascotas, Otros.
-        
-        Ejemplo de respuesta:
-        {
-          "compras": [
-            {
-              "categoria": "Alimentos",
-              "producto": "Manzana",
-              "precio": 1.50
-            }
-          ]
-        }
-        
-        Factura:
-        $invoiceText
-      """),
-    );
-
-    if (response.text != null) {
-      messages.add(response.text!);
-      await saveResponseToJson(response.text!); // Guarda el texto en un archivo JSON
-    }
-  } catch (e) {
-    lastError = 'Error al procesar la factura de texto: ${e.toString()}';
-    messages.add(lastError!);
-  } finally {
-    isLoading = false;
-  }
-  }
-
   // Método para limpiar los datos
   void clearData() {
     messages.clear();
     currentImage = null;
     lastError = null;
     isLoading = false;
+  }
+
+  // Prompts reutilizables
+  String _getAnalysisPrompt(String userId) {
+    return """
+      Usuario: $userId
+
+      Solo extrae no des más conversación ni una entrada de diálogo solo dame a la categoría que pertenece
+      (Categorías: Alimentos, Hogar, Ropa, Salud, Tecnología, Entretenimiento, Transporte, Mascotas, Otros:otros no pertenece a 
+      ninguna de las otras categorías),el nombre del producto,el precio, el usuario(El nombre de usuario ya esta definodo) y la fecha.Que estén en un formato json.
+      Si la fecha no se especifica, usa la fecha actual.
+      Si lo que se te entrega no es una factura, no respondas nada.
+      Ejemplo de tipo de respuesta que quiero:
+        {
+          "compras": [
+            {
+              "categoria": "Alimentos",
+              "producto": "Manzana",
+              "precio": 1.50,
+              "usuario": "pedro perez",
+              "fecha": "01/01/2023 12:00"
+            }
+          ]
+        }
+    """;
+  }
+
+  String _getTextAnalysisPrompt(String invoiceText, String userId) {
+    return """
+      Usuario: $userId
+
+      Solo extrae no des más conversación ni una entrada de diálogo solo dame a la categoría que pertenece
+      (Categorías: Alimentos, Hogar, Ropa, Salud, Tecnología, Entretenimiento, Transporte, Mascotas, Otros:otros no pertenece a 
+      ninguna de las otras categorías),el nombre del producto,el precio, el usuario(El nombre de usuario ya esta definodo) y la fecha.Que estén en un formato json.
+      Si la fecha no se especifica, usa la fecha actual.
+      Si lo que se te entrega no son datos como precios o productos, no respondas nada.
+      Ejemplo de tipo de respuesta que quiero:
+      {
+        "compras": [
+          {
+            "categoria": "Alimentos",
+            "producto": "Manzana",
+            "precio": 1.50,
+            "usuario": "pedro perez",
+            "fecha": "01/01/2023 12:00"
+          }
+        ]
+      }
+      
+      Factura:
+      $invoiceText
+    """;
   }
 }

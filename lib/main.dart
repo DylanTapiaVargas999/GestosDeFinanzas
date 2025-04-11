@@ -14,7 +14,7 @@ class InvoiceAnalyzerApp extends StatelessWidget {
       title: 'Factura Analyzer',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(
-          brightness: Brightness.dark,
+          brightness: Brightness.light, // Cambiado a modo claro
           seedColor: Colors.blue,
         ),
         useMaterial3: true,
